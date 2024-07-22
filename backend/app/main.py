@@ -32,6 +32,7 @@ async def callback(request: Request):
         return "Invalid signature. Please check your channel access token/channel secret.", 400
     return 'OK', 200
 
+# 実際の検索ロジックを含む関数を飛び出す処理: contextが揃っている場合
 @handler.add(MessageEvent, message=TextMessage)
 async def handle_message(event):
     # user_idを取得する
