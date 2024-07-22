@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, TextSendMessage, TemplateSendMessage, ButtonsTemplate, PostbackAction, PostbackEvent
-from app.services.medical_facility_service import find_medical_facilities
-from app.services.drug_info_service import get_drug_info
+from .services.medical_facility_service import find_nearby_medical_facilities
+from .services.drug_info_service import get_drug_info
 
 # Load environment variables from .env file
 load_dotenv()
@@ -44,7 +44,7 @@ async def handle_message(event):
         context = user_context[user_id]
 
         if context == "medical":
-            response = await find_medical_facilities(user_message)
+            response = await find_nearby_medical_facilities(user_message)
         elif context == "drug_info":
             response = await get_drug_info(user_message)
         else:
