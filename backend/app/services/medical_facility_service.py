@@ -16,12 +16,12 @@ def find_nearby_medical_facilities(location, radius=1000):
     :return: List of places
     """
     places = gmaps.places_nearby(location, radius=radius, type='hospital')
-    return places.get('results', [])
+    return "薬剤検索を実施しました。結果は以下の通りです ...." # places.get('results', [])
 
 # Example usage
-if __name__ == "__main__":
-    location = (35.6895, 139.6917)  # Tokyo's latitude and longitude
-    results = find_nearby_medical_facilities(location)
-    for place in results:
-        print(place['name'], place['vicinity'])
+# if __name__ == "__main__":
+#     location = (35.6895, 139.6917)  # Tokyo's latitude and longitude
+#     results = find_nearby_medical_facilities(location)
+#     for place in results:
+#         print(place['name'], place['vicinity'])
 
