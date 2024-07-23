@@ -25,7 +25,7 @@ from .services.drug_info_service import get_drug_info
 
 load_dotenv()
 
-# app = FastAPI()
+app = FastAPI()
 
 # 例外処理の追加
 configuration = None
@@ -53,12 +53,12 @@ async def callback(request: Request):
     signature = request.headers['X-Line-Signature']
     body = await request.body()
     try:
-        print(f"signature: {signature}")
+        print(f"◆signature: {signature}")
         print ("メッセージ受信")
-        print(f"body: {body.decode('utf-8')}")
-        print(f"Configuration: {Configuration}")
-        print(f"handler: {handler}")
-        print(f"line_bot_api: {line_bot_api}")
+        print(f"◆body: {body.decode('utf-8')}")
+        print(f"◆Configuration: {Configuration}")
+        print(f"◆handler: {handler}")
+        print(f"◆line_bot_api: {line_bot_api}")
         handler.handle(body.decode('utf-8'), signature)
     except InvalidSignatureError:
         return "Invalid signature. Please check your channel access token/channel secret.", 400
@@ -66,7 +66,7 @@ async def callback(request: Request):
 
 # # 実際の検索ロジックを含む関数を飛び出す処理: contextが揃っている場合
 @handler.add(MessageEvent, message=TextMessageContent)
-async def handle_message(event: MessageEvent):
+def handle_message(event: MessageEvent):
     print("handle_message called") 
     try:
         user_id = event.source.user_id
@@ -79,19 +79,19 @@ async def handle_message(event: MessageEvent):
                 if "location" in context:
                     department = context['department']
                     location = context['location']
-                    response = await find_nearby_medical_facilities(user_message, department, location)
+                    response = find_nearby_medical_facilities(user_message, department, location)
                     del user_context[user_id]
                 else:
                     response = "位置情報を送信してください。"
 
             elif context['context'] == "drug_info":
-                response = await get_drug_info(user_message)
+                response = get_drug_info(user_message)
                 del user_context[user_id]
 
             else:
                 response = "すみません、理解できませんでした"
 
-            await line_bot_api.reply_message(
+            line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text=response)]
@@ -108,7 +108,7 @@ async def handle_message(event: MessageEvent):
 
             quick_reply = QuickReply(items=quick_reply_buttons)
 
-            await line_bot_api.reply_message(
+            line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text="お役に立てることはありますか？", quick_reply=quick_reply)]
@@ -120,7 +120,7 @@ async def handle_message(event: MessageEvent):
 
     except Exception:
         print(f"An error occurred: {Exception}")
-        await line_bot_api.reply_message(
+        line_bot_api.reply_message(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[TextMessage(text="申し訳ありませんが、処理中にエラーが発生しました。")]
