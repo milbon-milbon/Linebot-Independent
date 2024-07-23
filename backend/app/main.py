@@ -72,51 +72,43 @@ def handle_message(event: MessageEvent):
         user_id = event.source.user_id
         user_message = event.message.text
 
-        if user_id in user_context:
-            context = user_context[user_id]
+        print(f"user_id: {user_id}")
+        print(f"メッセージ: {user_message}")
 
-            if context['context'] == "medical":
-                if "location" in context:
-                    department = context['department']
-                    location = context['location']
-                    response = find_nearby_medical_facilities(user_message, department, location)
-                    del user_context[user_id]
-                else:
-                    response = "位置情報を送信してください。"
-
-            elif context['context'] == "drug_info":
-                response = get_drug_info(user_message)
-                del user_context[user_id]
-
-            else:
-                response = "すみません、理解できませんでした"
-
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=response)]
-                )
-                # event.reply_token,
-                # TextSendMessage(text=response)
-            )
-        else:
-            # Define quick reply buttons
-            quick_reply_buttons = [
+        quick_reply_buttons = [
                 QuickReplyItem(action=MessageAction(label="医療機関を知りたい", text="医療機関を知りたい")),
                 QuickReplyItem(action=MessageAction(label="薬について聞きたい", text="薬について聞きたい"))
             ]
 
-            quick_reply = QuickReply(items=quick_reply_buttons)
+        quick_reply = QuickReply(items=quick_reply_buttons)
 
+        if user_message == "医療機関を知りたい":
+            response = "今から検索します。何科を受診したいですか？"
+            # if "location" in context:
+            #     department = context['department']
+            #     location = context['location']
+            #     response = find_nearby_medical_facilities(user_message, department, location)
+            #     del user_context[user_id]
+            # else:
+            #     response = "位置情報を送信してください。"
+        elif user_message == "薬について聞きたい":
+            response = "何というお薬の、どのようなことについて知りたいですか？"
+            # response = get_drug_info(user_message)
+            # del user_context[user_id]
+        else:
             line_bot_api.reply_message(
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[TextMessage(text="お役に立てることはありますか？", quick_reply=quick_reply)]
                 )
             )
-
-        print(f"user_id: {user_id}")
-        print(f"メッセージ: {user_message}")
+        
+        line_bot_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=response)]
+            )
+        )
 
     except Exception:
         print(f"An error occurred: {Exception}")
@@ -129,8 +121,8 @@ def handle_message(event: MessageEvent):
 
 
 # 医療機関の検索をする時の'department'の情報獲得用の処理: 獲得したらcontextへ追加される
-# @handler.add(PostbackEvent)
-# async def handle_postback(event):
+@handler.add(PostbackEvent)
+async def handle_postback(event):
     postback_data = event.postback.data
     user_id = event.source.user_id
 
@@ -201,6 +193,7 @@ def handle_message(event: MessageEvent):
         )
 
     print(f"postback_data: {postback_data}")
+
 @handler.add(PostbackEvent)
 async def handle_postback(event: PostbackEvent):
     postback_data = event.postback.data
