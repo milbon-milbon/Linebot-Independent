@@ -7,3 +7,5 @@ psycopg2-binary
 SQLAlchemy
 line-bot-sdk
 googlemaps
+psycopg2-binary
+alembic

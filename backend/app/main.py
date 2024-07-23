@@ -13,7 +13,6 @@ from linebot.v3.messaging import (
     QuickReply,
     QuickReplyItem,
     MessageAction,
-    
 )
 from linebot.v3.webhooks import (
     MessageEvent,
