@@ -4,3 +4,4 @@ backend/venv
 backend/app/services/__pycache__
 *.pyc
 backend/app/alembic/__pycache__
+__pycache__/
