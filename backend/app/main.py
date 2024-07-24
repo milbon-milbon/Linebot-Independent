@@ -141,8 +141,9 @@ def handle_message(event: MessageEvent):
             drug_name = user_context[user_id].get('drug_name')
             user_context[user_id] = {}
             if info_type in ["副作用", "使い方"]:
-                # response = get_drug_info(drug_name, info_type)
-                response = "💊ここにはる関数の処理結果が表示されます"
+                print(f"💊薬剤名: {drug_name}")
+                print(f"💊知りたいこと: {info_type}")
+                response = get_drug_info(drug_name, info_type, "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=" + drug_name)
                 line_bot_api.reply_message(
                     event.reply_token,
                     TextSendMessage(text=response)
@@ -178,13 +179,21 @@ def handle_location(event):
             user_department = user_context.get(user_id, {}).get('selected_department')
 
             if user_department:
-                location = {'latitude': latitude, 'longitude': longitude}
+                location = (latitude, longitude)
                 print(f"🏥 診療科(department): {user_department}")
                 print(f"📍 位置情報: {location}")
-                # result = find_nearby_medical_facilities(user_department, location)
-                print("🏥くーみん関数の処理結果がここに表示されます")
-                result = "🏥くーみん関数の処理結果がここに表示されます"
-                response = f"お近くの医療機関: {result}"
+                try:
+                    results = find_nearby_medical_facilities(location, user_department)
+                    if results:
+                        response = "お近くの医療機関はこちらです：\n\n" + "\n\n".join(
+                            [f"{facility['name']}\n住所: {facility['address']}\n電話番号: {facility.get('phone_number', 'N/A')}\nウェブサイト: {facility.get('website', 'N/A')}" for facility in results]
+                        )
+                    else:
+                        response = "お近くに該当する医療機関が見つかりませんでした。"
+                except Exception as e:
+                    print(f"An error occurred while searching for medical facilities: {e}")
+                    response = "医療機関の検索中にエラーが発生しました。"
+
             else:
                 response = "診療科目が選択されていません。もう一度お試しください。"
 

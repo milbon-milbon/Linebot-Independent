@@ -127,12 +127,12 @@ def generate_response(context):
     return response.choices[0].message['content'].strip()
 
 # Test the functions
-if __name__ == "__main__":
-    location = (35.6895, 139.6917)  # Example location (Tokyo)
-    department = "内科"  # Example department (Internal Medicine)
+# if __name__ == "__main__":
+#     location = (35.6895, 139.6917)  # Example location (Tokyo)
+#     department = "内科"  # Example department (Internal Medicine)
 
-    facilities = find_nearby_medical_facilities(location, department)
-    context = "\n".join([f"名前: {f['name']}, 住所: {f['address']}, 電話番号: {f['phone_number']}, ウェブサイト: {f['website']}" for f in facilities])
+#     facilities = find_nearby_medical_facilities(location, department)
+#     context = "\n".join([f"名前: {f['name']}, 住所: {f['address']}, 電話番号: {f['phone_number']}, ウェブサイト: {f['website']}" for f in facilities])
     
-    response = generate_response(context)
-    print(response)
+#     response = generate_response(context)
+#     print(response)
