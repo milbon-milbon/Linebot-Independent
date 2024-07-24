@@ -2,23 +2,11 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import PlainTextResponse
-from linebot.v3 import WebhookHandler
-from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.messaging import (
-    Configuration,
-    ApiClient,
-    MessagingApi,
-    ReplyMessageRequest,
-    TextMessage,
-    QuickReply,
-    QuickReplyItem,
-    MessageAction,
-)
-from linebot.v3.webhooks import (
-    MessageEvent,
-    TextMessageContent,
-    PostbackEvent,
-    LocationMessageContent
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import (
+    MessageEvent, TextMessage, TextSendMessage, LocationMessage,
+    QuickReply, QuickReplyButton, MessageAction, LocationAction
 )
 from .services.medical_facility_service import find_nearby_medical_facilities
 from .services.drug_info_service import get_drug_info
@@ -28,16 +16,14 @@ load_dotenv()
 app = FastAPI()
 
 # 例外処理の追加
-configuration = None
+line_bot_api = None
 handler = None
 
 try:
-    configuration = Configuration(access_token=os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+    line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
     handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-    line_bot_api = MessagingApi(ApiClient(configuration))
-    print (f"Configuration: {Configuration}")
-    print(f"handler: {handler}")
-    print(f"line_bot_api: {line_bot_api}")
+    print(f"📍line_bot_api: {line_bot_api}")
+    print(f"📍handler: {handler}")
 except Exception:
     print(f"環境変数の読み込みに失敗しました: {Exception}")
 
@@ -53,238 +39,114 @@ async def callback(request: Request):
     signature = request.headers['X-Line-Signature']
     body = await request.body()
     try:
-        print(f"◆signature: {signature}")
-        print ("メッセージ受信")
-        print(f"◆body: {body.decode('utf-8')}")
-        print(f"◆Configuration: {Configuration}")
-        print(f"◆handler: {handler}")
-        print(f"◆line_bot_api: {line_bot_api}")
+        print("📩メッセージを受信しました。")
+        print(f"📝 メッセージ内容: {body.decode('utf-8')}")
         handler.handle(body.decode('utf-8'), signature)
     except InvalidSignatureError:
-        return "Invalid signature. Please check your channel access token/channel secret.", 400
-    return 'OK', 200
+        return PlainTextResponse("Invalid signature. Please check your channel access token/channel secret.", status_code=400)
+    return PlainTextResponse('OK', status_code=200)
 
-# # 実際の検索ロジックを含む関数を飛び出す処理: contextが揃っている場合
-@handler.add(MessageEvent, message=TextMessageContent)
+@handler.add(MessageEvent, message=TextMessage)
 def handle_message(event: MessageEvent):
-    print("handle_message called") 
+    print("📣handle_messageが呼び出されました。") 
+    print(f"✅event: {event}")
     try:
         user_id = event.source.user_id
         user_message = event.message.text
 
-        print(f"user_id: {user_id}")
-        print(f"メッセージ: {user_message}")
+        print(f"ℹ️ user_id: {user_id}")
+        print(f"💬 メッセージ: {user_message}")
 
         quick_reply_buttons = [
-                QuickReplyItem(action=MessageAction(label="医療機関を知りたい", text="医療機関を知りたい")),
-                QuickReplyItem(action=MessageAction(label="薬について聞きたい", text="薬について聞きたい"))
-            ]
-
-        quick_reply = QuickReply(items=quick_reply_buttons)
-
-        if user_message == "医療機関を知りたい":
-            response = "今から検索します。何科を受診したいですか？"
-            # if "location" in context:
-            #     department = context['department']
-            #     location = context['location']
-            #     response = find_nearby_medical_facilities(user_message, department, location)
-            #     del user_context[user_id]
-            # else:
-            #     response = "位置情報を送信してください。"
-        elif user_message == "薬について聞きたい":
-            response = "何というお薬の、どのようなことについて知りたいですか？"
-            # response = get_drug_info(user_message)
-            # del user_context[user_id]
-        else:
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text="お役に立てることはありますか？", quick_reply=quick_reply)]
-                )
-            )
-        
-        line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=response)]
-            )
-        )
-
-    except Exception:
-        print(f"An error occurred: {Exception}")
-        line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text="申し訳ありませんが、処理中にエラーが発生しました。")]
-            )
-        )
-
-
-# 医療機関の検索をする時の'department'の情報獲得用の処理: 獲得したらcontextへ追加される
-@handler.add(PostbackEvent)
-async def handle_postback(event):
-    postback_data = event.postback.data
-    user_id = event.source.user_id
-
-    if postback_data == "medical":
-        reply_message = "何科の受診をご希望ですか？"
-        user_context[user_id] = {"context": "medical"}
-        buttons_template = ButtonsTemplate(
-            title="受診したい診療科を選択してください",
-            text="以下の診療科から選択してください",
-            actions=[
-                PostbackAction(label="内科", data="department_internal_medicine"),
-                PostbackAction(label="整形外科", data="department_orthopedics"),
-                PostbackAction(label="泌尿器科", data="department_urology"),
-                PostbackAction(label="婦人科", data="department_gynecology"),
-                PostbackAction(label="耳鼻科", data="department_ent"),
-                PostbackAction(label="皮膚科", data="department_dermatology"),
-                PostbackAction(label="眼科", data="department_ophthalmology"),
-                PostbackAction(label="精神科", data="department_psychiatry")
-            ]
-        )
-
-        template_message = TemplateSendMessage(
-            alt_text="診療科を選択してください",
-            template=buttons_template
-        )
-        line_bot_api.reply_message(
-            event.reply_token,
-            template_message
-        )
-
-    elif postback_data == "drug_info":
-        reply_message = "何というお薬の、どのようなことについてお調べしますか？"
-        user_context[user_id] = {"context": "drug_info"}
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=reply_message)
-        )
-    
-    elif "department_" in postback_data:
-        department_mapping = {
-            "department_internal_medicine": "内科",
-            "department_orthopedics": "整形外科",
-            "department_urology": "泌尿器科",
-            "department_gynecology": "婦人科",
-            "department_ent": "耳鼻科",
-            "department_dermatology": "皮膚科",
-            "department_ophthalmology": "眼科",
-            "department_psychiatry": "精神科"
-        }
-        department = department_mapping.get(postback_data)
-        user_context[user_id]['department'] = department
-        reply_message = f"{department}の医療機関を検索するために、位置情報を送信してください。"
-        location_message = LocationSendMessage(
-            title="現在地を送信",
-            address="タップして現在地を送信してください",
-            latitude=0.0,
-            longitude=0.0
-        )
-        line_bot_api.reply_message(
-            event.reply_token,
-            [TextSendMessage(text=reply_message), location_message]
-        )
-    else:
-        reply_message = "すみません、理解できませんでした。"
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=reply_message)
-        )
-
-    print(f"postback_data: {postback_data}")
-
-@handler.add(PostbackEvent)
-async def handle_postback(event: PostbackEvent):
-    postback_data = event.postback.data
-    user_id = event.source.user_id
-
-    if postback_data == "medical":
-        reply_message = "何科の受診をご希望ですか？"
-        user_context[user_id] = {"context": "medical"}
-        quick_reply_buttons = [
-            QuickReplyItem(action=MessageAction(label="内科", text="内科")),
-            QuickReplyItem(action=MessageAction(label="整形外科", text="整形外科")),
-            QuickReplyItem(action=MessageAction(label="泌尿器科", text="泌尿器科")),
-            QuickReplyItem(action=MessageAction(label="婦人科", text="婦人科")),
-            QuickReplyItem(action=MessageAction(label="耳鼻科", text="耳鼻科")),
-            QuickReplyItem(action=MessageAction(label="皮膚科", text="皮膚科")),
-            QuickReplyItem(action=MessageAction(label="眼科", text="眼科")),
-            QuickReplyItem(action=MessageAction(label="精神科", text="精神科"))
+            QuickReplyButton(action=MessageAction(label="医療機関を知りたい", text="医療機関を知りたい")),
+            QuickReplyButton(action=MessageAction(label="薬について聞きたい", text="薬について聞きたい"))
         ]
 
         quick_reply = QuickReply(items=quick_reply_buttons)
 
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=reply_message, quick_reply=quick_reply)]
+        departments = ["内科", "整形外科", "耳鼻科", "眼科", "皮膚科", "泌尿器科", "婦人科", "精神科"]
+
+        if user_message == "医療機関を知りたい":
+            response = "承知しました。何科を受診したいですか？"
+
+            quick_reply_department = [
+                QuickReplyButton(action=MessageAction(label="内科", text="内科")),
+                QuickReplyButton(action=MessageAction(label="整形外科", text="整形外科")),
+                QuickReplyButton(action=MessageAction(label="耳鼻科", text="耳鼻科")),
+                QuickReplyButton(action=MessageAction(label="眼科", text="眼科")),
+                QuickReplyButton(action=MessageAction(label="皮膚科", text="皮膚科")),
+                QuickReplyButton(action=MessageAction(label="婦人科", text="婦人科")),
+                QuickReplyButton(action=MessageAction(label="泌尿器科", text="泌尿器科")),
+                QuickReplyButton(action=MessageAction(label="精神科", text="精神科")),
+            ]
+
+            quick_reply = QuickReply(items=quick_reply_department)
+
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=response, quick_reply=quick_reply)
             )
+
+        elif user_message in departments:
+            print("🗺️ここのパートで位置情報取得を開始したい")
+            user_context[user_id] = {'selected_department': user_message}
+            response = f"{user_message}ですね。それではお近くの医療機関を検索しますので、位置情報を送信してください。"
+            # 位置情報の送信を促す
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(
+                    text=response,
+                    quick_reply=QuickReply(
+                        items=[
+                            QuickReplyButton(action=LocationAction(label="位置情報を送信", text="位置情報を送信"))
+                        ]
+                    )
+                )
+            )
+
+        elif user_message == "薬について聞きたい":
+            response = "何というお薬の、どのようなことについて知りたいですか？"
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=response)
+            )
+
+        else:
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text="お役に立てることはありますか？", quick_reply=quick_reply)
+            )
+        
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="申し訳ありませんが、処理中にエラーが発生しました。")
         )
 
-    elif postback_data == "drug_info":
-        reply_message = "何というお薬の、どのようなことについてお調べしますか？"
-        user_context[user_id] = {"context": "drug_info"}
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=reply_message)]
-            )
-        )
-    
-    elif "department_" in postback_data:
-        department_mapping = {
-            "department_internal_medicine": "内科",
-            "department_orthopedics": "整形外科",
-            "department_urology": "泌尿器科",
-            "department_gynecology": "婦人科",
-            "department_ent": "耳鼻科",
-            "department_dermatology": "皮膚科",
-            "department_ophthalmology": "眼科",
-            "department_psychiatry": "精神科"
-        }
-        department = department_mapping.get(postback_data)
-        user_context[user_id]['department'] = department
-        reply_message = f"{department}の医療機関を検索するために、位置情報を送信してください。"
-        location_message = LocationMessage(
-            title="現在地を送信",
-            address="タップして現在地を送信してください",
-            latitude=0.0,
-            longitude=0.0
-        )
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=reply_message), location_message]
-            )
-        )
-    else:
-        reply_message = "すみません、理解できませんでした。"
-        await line_bot_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[TextMessage(text=reply_message)]
-            )
-        )
-
-    print(f"postback_data: {postback_data}")
-
-# 医療機関情報検索の時の'location'の情報獲得用の処理: 獲得したらcontextへ追加される
-@handler.add(MessageEvent, message=LocationMessageContent)
-async def handle_location(event):
+@handler.add(MessageEvent, message=LocationMessage)
+def handle_location(event):
     user_id = event.source.user_id
-    latitude = event.message.latitude
-    longitude = event.message.longitude
+    if isinstance(event.message, LocationMessage):
+            print("📍位置情報を受信しました。")
+            print(f"位置情報メッセージの内容: {event.message}")
+            latitude = event.message.latitude
+            longitude = event.message.longitude
+            user_department = user_context.get(user_id, {}).get('selected_department')
 
-    if user_id in user_context:
-        user_context[user_id]['location'] = {'latitude': latitude, 'longitude': longitude}
-        reply_message = "位置情報を受け取りました。検索を続けるためにもう一度メッセージを入力してください。"
-    else:
-        reply_message = "位置情報を受け付けました。"
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=reply_message)
-    )
+            if user_department:
+                location = {'latitude': latitude, 'longitude': longitude}
+                print(f"🏥 診療科(department): {user_department}")
+                print(f"📍 位置情報: {location}")
+                # result = find_nearby_medical_facilities(user_department, location)
+                print("🏥くーみん関数の処理結果がここに表示されます")
+                result = "🏥くーみん関数の処理結果がここに表示されます"
+                response = f"お近くの医療機関: {result}"
+            else:
+                response = "診療科目が選択されていません。もう一度お試しください。"
 
-    print(f"user_id: {user_id}")
-    print(f"位置情報: {latitude}, {longitude}")
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=response)
+            )
