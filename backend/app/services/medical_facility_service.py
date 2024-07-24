@@ -82,7 +82,7 @@ gmaps = googlemaps.Client(key=os.getenv("GOOGLE_MAPS_API_KEY"))
 # Initialize OpenAI client
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def find_nearby_medical_facilities(location, department, radius=1000):
+def find_nearby_medical_facilities(location, department, radius=10000):
     """
     Find nearby medical facilities based on location and department (specialty).
     :param location: Tuple of latitude and longitude

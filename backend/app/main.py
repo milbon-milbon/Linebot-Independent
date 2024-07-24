@@ -104,13 +104,55 @@ def handle_message(event: MessageEvent):
                 )
             )
 
+        # elif user_message == "薬について聞きたい":
+            # "私が提供できるのはお薬の副作用または使い方についてです。調べたいお薬の名前をできるだけ正確に教えてください。"
+            # ユーザーが自由入力で薬の名前を送信してくる
+            # 上記で受け取った薬の名前は drug_name という変数に格納し、保持する
+
+            # "そのお薬について、副作用、使い方のどちらを調べますか？"というメッセージと一緒に「副作用」「使い方」というクイックリプライボタンを表示する
+            # ユーザーが選択したボタンによって返されたメッセージは info_type という変数に格納し、保持する
+
+            # 関数get_drug_info に drug_name とinfo_typeを引数として渡し、関数の処理結果をユーザーにレスポンスメッセージとして表示する
+
         elif user_message == "薬について聞きたい":
-            response = "何というお薬の、どのようなことについて知りたいですか？"
+            response = "私が提供できるのはお薬の副作用または使い方についてです。調べたいお薬の名前をできるだけ正確に教えてください。"
+            user_context[user_id] = {'awaiting_drug_name': True}
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text=response)
             )
 
+        # 追記部分開始
+        elif user_context.get(user_id, {}).get('awaiting_drug_name'):
+            drug_name = user_message
+            user_context[user_id] = {'drug_name': drug_name, 'awaiting_info_type': True}
+            response = "そのお薬について、副作用、使い方のどちらを調べますか？"
+            quick_reply_info_type = QuickReply(items=[
+                QuickReplyButton(action=MessageAction(label="副作用", text="副作用")),
+                QuickReplyButton(action=MessageAction(label="使い方", text="使い方"))
+            ])
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=response, quick_reply=quick_reply_info_type)
+            )
+
+        elif user_context.get(user_id, {}).get('awaiting_info_type'):
+            info_type = user_message
+            drug_name = user_context[user_id].get('drug_name')
+            user_context[user_id] = {}
+            if info_type in ["副作用", "使い方"]:
+                # response = get_drug_info(drug_name, info_type)
+                response = "💊ここにはる関数の処理結果が表示されます"
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text=response)
+                )
+            else:
+                line_bot_api.reply_message(
+                    event.reply_token,
+                    TextSendMessage(text="無効な選択です。もう一度お試しください。")
+                )
+        # 追記部分終了
         else:
             line_bot_api.reply_message(
                 event.reply_token,
