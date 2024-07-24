@@ -227,12 +227,12 @@
 #     asyncio.run(test_get_drug_info())
 
 
-from openai import OpenAI, AsyncOpenAI
-import os
-import asyncio
+# from openai import OpenAI, AsyncOpenAI
+# import os
+# import asyncio
 
-# APIキーを設定
-api_key = os.getenv("OPENAI_API_KEY")
+# # APIキーを設定
+# api_key = os.getenv("OPENAI_API_KEY")
 
 # グローバル変数の定義
 drug_name = "ロキソプロフェン"
@@ -275,30 +275,30 @@ async def get_drug_info(drug_name: str, info_type: str, pmda_url: str, model: st
     response = await generate_natural_language_response(prompt, model)
     return response
 
-# テストコード
-# test_generate_prompt: generate_prompt 関数が正しいプロンプトを生成しているか確認する。期待されるプロンプトと実際に生成されたプロンプトを比較し、一致するか検証する。
-def test_generate_prompt():
-    expected_prompt = (
-        f"薬剤名: {drug_name}\n"
-        f"知りたい情報: {info_type}\n"
-        f"以下のPMDAのURLから得られる情報を参考にして、薬についてユーザーにわかりやすい説明をしてください。\n"
-        f"URL: {pmda_url}"
-    )
-    actual_prompt = generate_prompt(drug_name, info_type, pmda_url)
-    assert expected_prompt == actual_prompt, f"Expected: {expected_prompt}, but got: {actual_prompt}"
-# test_generate_natural_language_response: generate_natural_language_response 関数が、非同期で有効な文字列のレスポンスを返すか確認する。レスポンスが非空文字列であることをチェックする。
-def test_generate_natural_language_response():
-    prompt = generate_prompt(drug_name, info_type, pmda_url)
-    response = asyncio.run(generate_natural_language_response(prompt))
-    assert isinstance(response, str) and len(response) > 0, "The response should be a non-empty string."
-# test_get_drug_info: get_drug_info 関数が、指定した薬剤情報を基に、有効な非空文字列のレスポンスを返すか確認する。また、最終的なレスポンスを出力する。
-async def test_get_drug_info():
-    response = await get_drug_info(drug_name, info_type, pmda_url, model="gpt-4")
-    assert isinstance(response, str) and len(response) > 0, "The final response should be a non-empty string."
-    print("Final Response:", response)
+# # テストコード
+# # test_generate_prompt: generate_prompt 関数が正しいプロンプトを生成しているか確認する。期待されるプロンプトと実際に生成されたプロンプトを比較し、一致するか検証する。
+# def test_generate_prompt():
+#     expected_prompt = (
+#         f"薬剤名: {drug_name}\n"
+#         f"知りたい情報: {info_type}\n"
+#         f"以下のPMDAのURLから得られる情報を参考にして、薬についてユーザーにわかりやすい説明をしてください。\n"
+#         f"URL: {pmda_url}"
+#     )
+#     actual_prompt = generate_prompt(drug_name, info_type, pmda_url)
+#     assert expected_prompt == actual_prompt, f"Expected: {expected_prompt}, but got: {actual_prompt}"
+# # test_generate_natural_language_response: generate_natural_language_response 関数が、非同期で有効な文字列のレスポンスを返すか確認する。レスポンスが非空文字列であることをチェックする。
+# def test_generate_natural_language_response():
+#     prompt = generate_prompt(drug_name, info_type, pmda_url)
+#     response = asyncio.run(generate_natural_language_response(prompt))
+#     assert isinstance(response, str) and len(response) > 0, "The response should be a non-empty string."
+# # test_get_drug_info: get_drug_info 関数が、指定した薬剤情報を基に、有効な非空文字列のレスポンスを返すか確認する。また、最終的なレスポンスを出力する。
+# async def test_get_drug_info():
+#     response = await get_drug_info(drug_name, info_type, pmda_url, model="gpt-4")
+#     assert isinstance(response, str) and len(response) > 0, "The final response should be a non-empty string."
+#     print("Final Response:", response)
 
-# テスト関数を実行
-if __name__ == "__main__":
-    test_generate_prompt()
-    test_generate_natural_language_response()
-    asyncio.run(test_get_drug_info())
+# # テスト関数を実行
+# if __name__ == "__main__":
+#     test_generate_prompt()
+#     test_generate_natural_language_response()
+#     asyncio.run(test_get_drug_info())
