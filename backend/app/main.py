@@ -201,3 +201,4 @@ def handle_location(event):
                 event.reply_token,
                 TextSendMessage(text=response)
             )
+

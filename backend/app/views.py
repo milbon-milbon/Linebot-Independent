@@ -1,19 +1,18 @@
-from fastapi import APIRouter, Request
-from app.services.medical_facility_service import find_medical_facilities
-from app.services.drug_info_service import get_drug_info
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from .database import SessionLocal, engine
+from .models import Base
+from .services.conversation_service import save_conversation_history
 
 router = APIRouter()
 
-@router.post("/webhook")
-async def webhook(request: Request):
-    data = await request.json()
-    user_message = data.get('message')
-    
-    if "医療機関を知りたい" in user_message:
-        response = await find_medical_facilities(user_message)
-    elif "薬について聞きたい" in user_message:
-        response = await get_drug_info(user_message)
-    else:
-        response = "すみません、理解できませんでした。"
-    
-    return {"reply": response}
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@router.post("/conversation")
+def log_conversation(user_id: str, message: str, db: Session = Depends(get_db)):
+    return save_conversation_history(db, user_id, message)
