@@ -235,9 +235,10 @@ import asyncio
 api_key = os.getenv("OPENAI_API_KEY")
 
 # グローバル変数の定義
-drug_name = "アセトアミノフェン"
-info_type = "副作用"
-pmda_url = "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=アセトアミノフェン"
+drug_name = "ロキソプロフェン"
+info_type = "使い方"
+pmda_url = "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/"
+
 
 # generate_prompt: 薬剤名と知りたい情報、PMDAのURLを用いて、OpenAI GPTに与えるプロンプトを生成する
 def generate_prompt(drug_name: str, info_type: str, pmda_url: str) -> str:
@@ -254,10 +255,20 @@ async def generate_natural_language_response(prompt: str, model: str = "gpt-4") 
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
         ],
-        max_tokens=150
+        max_tokens=500,  # 最大500トークンまでの応答
+        temperature=0.5,  # 値が0に近いほど、モデルはより決定的な応答を生成
+        top_p=1  # すべてのトークンを考慮する
     )
 # 修正: ドット記法で属性にアクセス
     return response.choices[0].message.content.strip() 
+
+# check_relevance: 応答が薬品に関連しているかどうかをチェックする
+def check_relevance(response: str) -> str:
+    if "薬" in response or "副作用" or "使い方" in response:
+        return response
+    else:
+        return "薬品以外の質問には回答できません。"
+
 # get_drug_info: 薬剤名や情報の種類、PMDAのURLを基に、GPTからの回答を取得する
 async def get_drug_info(drug_name: str, info_type: str, pmda_url: str, model: str = "gpt-4") -> str:
     prompt = generate_prompt(drug_name, info_type, pmda_url)
