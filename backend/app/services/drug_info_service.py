@@ -95,7 +95,7 @@ def get_drug_info(drug_name: str, info_type: str, pmda_url: str, model: str = "g
 
 
 
-# ※（仮）プロンプトのみ追加挿入※
+# ※※（仮）プロンプトのみ追加挿入※※
 # from openai import OpenAI
 # import os
 
@@ -159,7 +159,7 @@ def get_drug_info(drug_name: str, info_type: str, pmda_url: str, model: str = "g
 
 
 
-# ※（仮）会話履歴取得する関数のみ挿入※
+# ※※（仮）会話履歴取得する関数のみ挿入※※
 # from openai import OpenAI
 # import os
 # from sqlalchemy.orm import Session
@@ -253,7 +253,7 @@ def get_drug_info(drug_name: str, info_type: str, pmda_url: str, model: str = "g
 
 
 
-# ※これが動くコードだよ※
+# ※※これが動くコードだよ※※
 # from openai import OpenAI
 # import os
 
