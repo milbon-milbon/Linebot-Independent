@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import PlainTextResponse
+import requests
+import json
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
@@ -10,6 +12,7 @@ from linebot.models import (
 )
 from .services.medical_facility_service import find_nearby_medical_facilities
 from .services.drug_info_service import get_drug_info
+from app.views import router as conversation_router
 
 load_dotenv()
 
@@ -88,7 +91,7 @@ def handle_message(event: MessageEvent):
             )
 
         elif user_message in departments:
-            print("🗺️ここのパートで位置情報取得を開始したい")
+            print("🗺️ 位置情報送信依頼をします")
             user_context[user_id] = {'selected_department': user_message}
             response = f"{user_message}ですね。それではお近くの医療機関を検索しますので、位置情報を送信してください。"
             # 位置情報の送信を促す
@@ -104,16 +107,6 @@ def handle_message(event: MessageEvent):
                 )
             )
 
-        # elif user_message == "薬について聞きたい":
-            # "私が提供できるのはお薬の副作用または使い方についてです。調べたいお薬の名前をできるだけ正確に教えてください。"
-            # ユーザーが自由入力で薬の名前を送信してくる
-            # 上記で受け取った薬の名前は drug_name という変数に格納し、保持する
-
-            # "そのお薬について、副作用、使い方のどちらを調べますか？"というメッセージと一緒に「副作用」「使い方」というクイックリプライボタンを表示する
-            # ユーザーが選択したボタンによって返されたメッセージは info_type という変数に格納し、保持する
-
-            # 関数get_drug_info に drug_name とinfo_typeを引数として渡し、関数の処理結果をユーザーにレスポンスメッセージとして表示する
-
         elif user_message == "薬について聞きたい":
             response = "私が提供できるのはお薬の副作用または使い方についてです。調べたいお薬の名前をできるだけ正確に教えてください。"
             user_context[user_id] = {'awaiting_drug_name': True}
@@ -122,7 +115,6 @@ def handle_message(event: MessageEvent):
                 TextSendMessage(text=response)
             )
 
-        # 追記部分開始
         elif user_context.get(user_id, {}).get('awaiting_drug_name'):
             drug_name = user_message
             user_context[user_id] = {'drug_name': drug_name, 'awaiting_info_type': True}
@@ -153,13 +145,22 @@ def handle_message(event: MessageEvent):
                     event.reply_token,
                     TextSendMessage(text="無効な選択です。もう一度お試しください。")
                 )
-        # 追記部分終了
+
         else:
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text="お役に立てることはありますか？", quick_reply=quick_reply)
             )
-        
+
+        # 会話履歴を保存するリクエストを/conversation..に送信する
+        conversation_data = {
+            "user_id": user_id,
+            "message": user_message,
+            "message_type": "text"
+        }
+        # requests.post("http://localhost:8000/api/conversation", json=conversation_data)
+        requests.post("http://backend:8000/api/conversation", json=conversation_data)
+
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -201,4 +202,19 @@ def handle_location(event):
                 event.reply_token,
                 TextSendMessage(text=response)
             )
+            
+            # 会話履歴を保存するリクエストを/conversation..に送信する
 
+            location_data = {
+                "user_id": user_id,
+                "message": f"位置情報: ({latitude}, {longitude})",
+                "message_type": "location"
+            }
+            # requests.post("http://localhost:8000/api/conversation", json=location_data)
+            requests.post("http://backend:8000/api/conversation", json=location_data)
+
+
+    
+
+# 会話履歴を保存するエンドポイント処理
+app.include_router(conversation_router, prefix="/api")
