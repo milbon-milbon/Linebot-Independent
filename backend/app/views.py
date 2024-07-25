@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from .database import SessionLocal, init_db
 from pydantic import BaseModel
@@ -19,17 +19,26 @@ def get_db():
 #     user_id: str
 #     message: str
 
-@router.post("/conversation/")
-
 # 履歴保存
 @router.post("/conversation/")
-async def create_conversation(user_id: str, user_message: str, bot_response: str, db: Session = Depends(get_db)):
+async def create_conversation(
+    user_id: str = Body(...),
+    user_message: str = Body(...),
+    bot_response: str = Body(...),
+    db: Session = Depends(get_db)
+):
     conversation = save_conversation_history(db, user_id, user_message, bot_response)
-    # return conversation
     return {
         "status": "success",
         "saved_conversation": conversation
     }
+# async def create_conversation(user_id: str, user_message: str, bot_response: str, db: Session = Depends(get_db)):
+#     conversation = save_conversation_history(db, user_id, user_message, bot_response)
+#     # return conversation
+#     return {
+#         "status": "success",
+#         "saved_conversation": conversation
+#     }
 
 # 特定ユーザーの履歴取得
 @router.get("/conversation/{user_id}")

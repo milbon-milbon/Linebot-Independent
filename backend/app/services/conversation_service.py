@@ -1,15 +1,19 @@
 from sqlalchemy.orm import Session # sqlalchemy.ormのsessionクラス: DB操作用
 from app.models import ConversationHistory
+from datetime import datetime, timezone
 
 # 会話を保存する
 def save_conversation_history(db: Session, user_id: str, user_message: str, bot_response: str):
+    timestamp = datetime.now(timezone.utc)
     print(f"🈴 保存するusr_id: {user_id}")
     print(f"🈴 保存するusr_message:{user_message}")
     print(f"🈴 保存するbot_response: {bot_response}")
+    print(f"🈴 保存する時刻: {timestamp}")
     conversation = ConversationHistory(
         user_id=user_id, 
         user_message=user_message,
-        bot_response=bot_response
+        bot_response=bot_response,
+        timestamp=timestamp
     )
     db.add(conversation)
     db.commit()

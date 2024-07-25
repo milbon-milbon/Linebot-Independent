@@ -70,7 +70,7 @@ def handle_message(event: MessageEvent):
         departments = ["内科", "整形外科", "耳鼻科", "眼科", "皮膚科", "泌尿器科", "婦人科", "精神科"]
 
         if user_message == "医療機関を知りたい":
-            response = "承知しました。何科を受診したいですか？"
+            bot_response = "承知しました。何科を受診したいですか？"
 
             quick_reply_department = [
                 QuickReplyButton(action=MessageAction(label="内科", text="内科")),
@@ -87,18 +87,18 @@ def handle_message(event: MessageEvent):
 
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text=response, quick_reply=quick_reply)
+                TextSendMessage(text=bot_response, quick_reply=quick_reply)
             )
 
         elif user_message in departments:
             print("🗺️ 位置情報送信依頼をします")
             user_context[user_id] = {'selected_department': user_message}
-            response = f"{user_message}ですね。それではお近くの医療機関を検索しますので、位置情報を送信してください。"
+            bot_response = f"{user_message}ですね。それではお近くの医療機関を検索しますので、位置情報を送信してください。"
             # 位置情報の送信を促す
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(
-                    text=response,
+                    text=bot_response,
                     quick_reply=QuickReply(
                         items=[
                             QuickReplyButton(action=LocationAction(label="位置情報を送信", text="位置情報を送信"))
@@ -108,24 +108,24 @@ def handle_message(event: MessageEvent):
             )
 
         elif user_message == "薬について聞きたい":
-            response = "私が提供できるのはお薬の副作用または使い方についてです。調べたいお薬の名前をできるだけ正確に教えてください。"
+            bot_response = "私が提供できるのはお薬の副作用または使い方についてです。調べたいお薬の名前をできるだけ正確に教えてください。"
             user_context[user_id] = {'awaiting_drug_name': True}
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text=response)
+                TextSendMessage(text=bot_response)
             )
 
         elif user_context.get(user_id, {}).get('awaiting_drug_name'):
             drug_name = user_message
             user_context[user_id] = {'drug_name': drug_name, 'awaiting_info_type': True}
-            response = "そのお薬について、副作用、使い方のどちらを調べますか？"
+            bot_response = "そのお薬について、副作用、使い方のどちらを調べますか？"
             quick_reply_info_type = QuickReply(items=[
                 QuickReplyButton(action=MessageAction(label="副作用", text="副作用")),
                 QuickReplyButton(action=MessageAction(label="使い方", text="使い方"))
             ])
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text=response, quick_reply=quick_reply_info_type)
+                TextSendMessage(text=bot_response, quick_reply=quick_reply_info_type)
             )
 
         elif user_context.get(user_id, {}).get('awaiting_info_type'):
@@ -135,35 +135,42 @@ def handle_message(event: MessageEvent):
             if info_type in ["副作用", "使い方"]:
                 print(f"💊薬剤名: {drug_name}")
                 print(f"💊知りたいこと: {info_type}")
-                response = get_drug_info(drug_name, info_type, "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=" + drug_name)
+                bot_response = get_drug_info(drug_name, info_type, "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=" + drug_name)
                 line_bot_api.reply_message(
                     event.reply_token,
-                    TextSendMessage(text=response)
+                    TextSendMessage(text=bot_response)
                 )
             else:
+                bot_response = "無効な選択です。もう一度お試しください。"
                 line_bot_api.reply_message(
                     event.reply_token,
-                    TextSendMessage(text="無効な選択です。もう一度お試しください。")
+                    TextSendMessage(text=bot_response)
                 )
 
         else:
+            bot_response = "お役に立てることはありますか？"
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text="お役に立てることはありますか？", quick_reply=quick_reply)
+                TextSendMessage(text=bot_response, quick_reply=quick_reply)
             )
 
-        # 会話履歴を保存するリクエストを/conversation..に送信する
+        # 会話履歴を保存するリクエストを /conversation に送信する
         conversation_data = {
             "user_id": user_id,
-            "message": user_message,
-            "message_type": "text"
+            "user_message": user_message,
+            "bot_response": bot_response
         }
-        # requests.post("http://localhost:8000/api/conversation", json=conversation_data)
-        requests.post("http://backend:8000/api/conversation", json=conversation_data)
 
+        print(f"💬会話履歴: {conversation_data}")
+
+        # response = requests.post("http://localhost:8000/api/conversation/", json=conversation_data)
+        # if response.status_code == 200:
+        #     print("🙆会話履歴が正常に保存されました。")
+        # else:
+        #     print(f"🙅会話履歴の保存に失敗しました: {response.status_code} - {response.text}")
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"❌ エラー発生: {e}")
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text="申し訳ありませんが、処理中にエラーが発生しました。")
@@ -203,18 +210,10 @@ def handle_location(event):
                 TextSendMessage(text=response)
             )
             
-            # 会話履歴を保存するリクエストを/conversation..に送信する
-
-            location_data = {
-                "user_id": user_id,
-                "message": f"位置情報: ({latitude}, {longitude})",
-                "message_type": "location"
-            }
-            # requests.post("http://localhost:8000/api/conversation", json=location_data)
-            requests.post("http://backend:8000/api/conversation", json=location_data)
-
+            # # ここでも、会話履歴を保存するリクエストを/conversation..に送信する
 
     
 
 # 会話履歴を保存するエンドポイント処理
 app.include_router(conversation_router, prefix="/api")
+
