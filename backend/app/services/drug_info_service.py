@@ -54,7 +54,7 @@ def get_drug_info(drug_name: str, info_type: str, pmda_url: str, model: str = "g
     logger.info(f"Fetching drug information for: {drug_name}, info type: {info_type}")
     prompt = generate_prompt(drug_name, info_type, pmda_url)
     response = generate_natural_language_response(prompt, model)
-    logger.debug(f"Final relevant response: {relevant_response}")
+    # logger.debug(f"Final relevant response: {relevant_response}")
     return response
 
 # # テストコード

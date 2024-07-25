@@ -11,7 +11,7 @@ from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage, LocationMessage,
     QuickReply, QuickReplyButton, MessageAction, LocationAction
 )
-from .services.medical_facility_service import find_nearby_medical_facilities
+from .services.medical_facility_service import find_nearby_medical_facilities, get_nearby_hospital
 from .services.drug_info_service import get_drug_info
 from app.views import router as conversation_router
 from app.logging_config import logger
@@ -193,11 +193,13 @@ def handle_location(event):
                 logger.debug(f"🏥 診療科(department): {user_department}")
                 logger.debug(f"📍 位置情報: {location}")
                 try:
-                    results = find_nearby_medical_facilities(location, user_department, user_id)
+                    # results = find_nearby_medical_facilities(location, user_department, user_id)
+                    results = get_nearby_hospital(location, user_department, user_id)
                     if results:
-                        bot_response = "お近くの医療機関はこちらです：\n\n" + "\n\n".join(
-                            [f"{facility['name']}\n住所: {facility['address']}\n電話番号: {facility.get('phone_number', 'N/A')}\nウェブサイト: {facility.get('website', 'N/A')}" for facility in results]
-                        )
+                        # bot_response = "お近くの医療機関はこちらです：\n\n" + "\n\n".join(
+                        #     [f"{facility['name']}\n住所: {facility['address']}\n電話番号: {facility.get('phone_number', 'N/A')}\nウェブサイト: {facility.get('website', 'N/A')}" for facility in results]
+                        # )
+                        bot_response = results
                     else:
                         bot_response = "お近くに該当する医療機関が見つかりませんでした。"
                 except Exception as e:

@@ -58,7 +58,9 @@ def generate_response(context):
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "あなたは親切なアシスタントです。指定されたエリアによって検索結果が異なる可能性があります。都市圏では半径1km、それ以外では半径10kmで検索しています。与えられたコンテキストに基づいて、簡潔で明確な情報を提供してください。"},
+            {"role": "system", "content": 
+                # くーみんさんへ: 勝手にプロンプトいじって試していました
+                "あなたは、受診する医療機関に迷っている人に対して適切な提案をすることに長けた人です。今に示す提案する医療機関の候補一覧と、会話相手とのこれまでの会話履歴を参考に、今この人にもっとも適した医療機関を提案する文章を生成してください。なお、提案する文章には必ず「医療機関名」「今営業中かどうか」「電話番号」「ホームページURL（もしもURLがない場合には割愛OK）」「住所」を含めるようにしてください。それでは、よろしくお願いします。"},
             {"role": "user", "content": f"{context}\n\n応答:"}
         ],
         max_tokens=500,
@@ -108,3 +110,61 @@ def test_logging():
 # テスト関数を実行
 if __name__ == "__main__":
     test_logging()
+
+# くーみんさんへ: ここ以下が、私は0726朝に作成したコードです。これで、一旦出力は成功しています。会話履歴はDBから引けていないので、ベタうちで入れてます。ここをDB検索結果に置き換えたら完成です
+
+import httpx
+# import asyncio
+from fastapi import Depends, HTTPException
+from .conversation_service import get_conversation_history
+
+from app.database import SessionLocal, init_db
+init_db
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+async def get_user_history(user_id: str):
+    url = f"http://localhost:8000/api/conversation/{user_id}"
+
+    async with httpx.AsyncClient() as client:
+        api_response = await client.get(url)
+
+    if api_response.status_code == 200:
+        conversation_history = api_response.json
+    else:
+        conversation_history = None
+    
+    logger.debug(f"💬取得した会話履歴: {conversation_history}")
+    return conversation_history
+
+async def read_conversation(user_id: str, db: Session = Depends(get_db)):
+    logger.debug(f"🚥read_conversationが呼び出されました")
+    conversation = get_conversation_history(db, user_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    logger.debug("🚥正常にread_conversationの処理を終えそうです")
+    return conversation
+
+
+def get_nearby_hospital(location, department, user_id, db = Depends(get_db)):
+    logger.debug("get_nearby hospitalが呼び出されました")
+    # googlemap検索結果: 必要な引数はlocation, department
+    gmap_result = find_nearby_medical_facilities(location, department)
+    logger.debug("検索結果は出てきた")
+
+    # loop = asyncio.get_event_loop()
+    # conversation_history = loop.run_until_complete(read_conversation(user_id, db))
+    # logger.debug(f"💬取得した会話履歴: {conversation_history}")
+    conversation_history = "これまでよく通っていたのは釧路赤十字病院でした。だけど、担当の先生がいなくなてしまって他の病院を検討しています。"
+    logger.debug(conversation_history)
+
+    # LLMにpromptを投げて応答生成する: 必要な引数= context = gmap検索結果+会話履歴
+    context = f"提案する医療機関の候補一覧: {gmap_result}, このユーザーとの過去の会話履歴: {conversation_history}"
+    logger.debug(f"💡 LLMに渡したcontext: {context}")
+    bot_response = generate_response(context)
+    return bot_response
