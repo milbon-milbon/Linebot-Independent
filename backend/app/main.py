@@ -163,11 +163,11 @@ def handle_message(event: MessageEvent):
 
         print(f"💬会話履歴: {conversation_data}")
 
-        # response = requests.post("http://localhost:8000/api/conversation/", json=conversation_data)
-        # if response.status_code == 200:
-        #     print("🙆会話履歴が正常に保存されました。")
-        # else:
-        #     print(f"🙅会話履歴の保存に失敗しました: {response.status_code} - {response.text}")
+        response = requests.post("http://127.0.0.1:8000/api/conversation/", data=conversation_data, timeout=10)
+        if response.status_code == 200:
+            print("🙆会話履歴が正常に保存されました。")
+        else:
+            print(f"🙅会話履歴の保存に失敗しました: {response.status_code} - {response.text}")
 
     except Exception as e:
         print(f"❌ エラー発生: {e}")
