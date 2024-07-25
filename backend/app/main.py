@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import PlainTextResponse
 import requests
 import json
+import asyncio
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
@@ -13,10 +14,12 @@ from linebot.models import (
 from .services.medical_facility_service import find_nearby_medical_facilities
 from .services.drug_info_service import get_drug_info
 from app.views import router as conversation_router
+from app.logging_config import logger
+from .post_conversation import save_conversation_history
 
 load_dotenv()
-
 app = FastAPI()
+
 
 # 例外処理の追加
 line_bot_api = None
@@ -25,10 +28,10 @@ handler = None
 try:
     line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
     handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-    print(f"📍line_bot_api: {line_bot_api}")
-    print(f"📍handler: {handler}")
+    logger.debug(f"📍line_bot_api: {line_bot_api}")
+    logger.debug(f"📍handler: {handler}")
 except Exception:
-    print(f"環境変数の読み込みに失敗しました: {Exception}")
+    logger.error(f"環境変数の読み込みに失敗しました: {Exception}")
 
 user_context = {}
 
@@ -42,8 +45,8 @@ async def callback(request: Request):
     signature = request.headers['X-Line-Signature']
     body = await request.body()
     try:
-        print("📩メッセージを受信しました。")
-        print(f"📝 メッセージ内容: {body.decode('utf-8')}")
+        logger.debug("📩メッセージを受信しました。")
+        logger.debug(f"📝 メッセージ内容: {body.decode('utf-8')}")
         handler.handle(body.decode('utf-8'), signature)
     except InvalidSignatureError:
         return PlainTextResponse("Invalid signature. Please check your channel access token/channel secret.", status_code=400)
@@ -51,14 +54,14 @@ async def callback(request: Request):
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event: MessageEvent):
-    print("📣handle_messageが呼び出されました。") 
-    print(f"✅event: {event}")
+    logger.debug("📣handle_messageが呼び出されました。") 
+    logger.debug(f"✅event: {event}")
     try:
         user_id = event.source.user_id
         user_message = event.message.text
 
-        print(f"ℹ️ user_id: {user_id}")
-        print(f"💬 メッセージ: {user_message}")
+        logger.debug(f"ℹ️ user_id: {user_id}")
+        logger.debug(f"💬 メッセージ: {user_message}")
 
         quick_reply_buttons = [
             QuickReplyButton(action=MessageAction(label="医療機関を知りたい", text="医療機関を知りたい")),
@@ -91,7 +94,7 @@ def handle_message(event: MessageEvent):
             )
 
         elif user_message in departments:
-            print("🗺️ 位置情報送信依頼をします")
+            logger.debug("🗺️ 位置情報送信依頼をします")
             user_context[user_id] = {'selected_department': user_message}
             bot_response = f"{user_message}ですね。それではお近くの医療機関を検索しますので、位置情報を送信してください。"
             # 位置情報の送信を促す
@@ -133,8 +136,8 @@ def handle_message(event: MessageEvent):
             drug_name = user_context[user_id].get('drug_name')
             user_context[user_id] = {}
             if info_type in ["副作用", "使い方"]:
-                print(f"💊薬剤名: {drug_name}")
-                print(f"💊知りたいこと: {info_type}")
+                logger.debug(f"💊薬剤名: {drug_name}")
+                logger.debug(f"💊知りたいこと: {info_type}")
                 bot_response = get_drug_info(drug_name, info_type, "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=" + drug_name)
                 line_bot_api.reply_message(
                     event.reply_token,
@@ -161,16 +164,13 @@ def handle_message(event: MessageEvent):
             "bot_response": bot_response
         }
 
-        print(f"💬会話履歴: {conversation_data}")
+        logger.debug(f"💬会話履歴: {conversation_data}")
 
-        response = requests.post("http://127.0.0.1:8000/api/conversation/", data=conversation_data, timeout=10)
-        if response.status_code == 200:
-            print("🙆会話履歴が正常に保存されました。")
-        else:
-            print(f"🙅会話履歴の保存に失敗しました: {response.status_code} - {response.text}")
-
+        # 非同期関数を同期関数の中で呼び出す
+        asyncio.run(save_conversation_history(conversation_data))
+        
     except Exception as e:
-        print(f"❌ エラー発生: {e}")
+        logger.error(f"❌ エラー発生: {e}")
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text="申し訳ありませんが、処理中にエラーが発生しました。")
@@ -180,16 +180,16 @@ def handle_message(event: MessageEvent):
 def handle_location(event):
     user_id = event.source.user_id
     if isinstance(event.message, LocationMessage):
-            print("📍位置情報を受信しました。")
-            print(f"位置情報メッセージの内容: {event.message}")
+            logger.info("📍位置情報を受信しました。")
+            logger.debug(f"位置情報メッセージの内容: {event.message}")
             latitude = event.message.latitude
             longitude = event.message.longitude
             user_department = user_context.get(user_id, {}).get('selected_department')
 
             if user_department:
                 location = (latitude, longitude)
-                print(f"🏥 診療科(department): {user_department}")
-                print(f"📍 位置情報: {location}")
+                logger.debug(f"🏥 診療科(department): {user_department}")
+                logger.debug(f"📍 位置情報: {location}")
                 try:
                     results = find_nearby_medical_facilities(location, user_department)
                     if results:
@@ -199,7 +199,7 @@ def handle_location(event):
                     else:
                         response = "お近くに該当する医療機関が見つかりませんでした。"
                 except Exception as e:
-                    print(f"An error occurred while searching for medical facilities: {e}")
+                    logger.error(f"❌医療機関検索中のエラー発生: {e}")
                     response = "医療機関の検索中にエラーが発生しました。"
 
             else:

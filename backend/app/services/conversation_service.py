@@ -1,14 +1,17 @@
 from sqlalchemy.orm import Session # sqlalchemy.ormのsessionクラス: DB操作用
 from app.models import ConversationHistory
 from datetime import datetime, timezone
+from app.logging_config import logger
+
 
 # 会話を保存する
 def save_conversation_history(db: Session, user_id: str, user_message: str, bot_response: str):
+    logger.debug("🚥save_conversation_historyが呼び出されました")
     timestamp = datetime.now(timezone.utc)
-    print(f"🈴 保存するusr_id: {user_id}")
-    print(f"🈴 保存するusr_message:{user_message}")
-    print(f"🈴 保存するbot_response: {bot_response}")
-    print(f"🈴 保存する時刻: {timestamp}")
+    logger.debug(f"🈴 保存するusr_id: {user_id}")
+    logger.debug(f"🈴 保存するusr_message:{user_message}")
+    logger.debug(f"🈴 保存するbot_response: {bot_response}")
+    logger.debug(f"🈴 保存する時刻: {timestamp}")
     conversation = ConversationHistory(
         user_id=user_id, 
         user_message=user_message,
@@ -18,10 +21,14 @@ def save_conversation_history(db: Session, user_id: str, user_message: str, bot_
     db.add(conversation)
     db.commit()
     db.refresh(conversation)
+    logger.debug(f"🈴returnするconversation: {conversation}")
+    logger.debug("🚥正常にsave_conversation_historyが処理を終えそうです")
+
     return conversation
 
 # user_idで特定のユーザーの会話履歴のみを取得する（LLMに渡す用)
 def get_conversation_history(db: Session, user_id: str):
+    logger.debug("🚥get_conversation_historyが呼び出されました")
     return db.query(ConversationHistory).filter(ConversationHistory.user_id == user_id).all()
 
 # NOTE: 関数の解説
