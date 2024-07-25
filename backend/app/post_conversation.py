@@ -1,7 +1,7 @@
 import aiohttp
 from app.logging_config import logger
 
-async def save_conversation_history(conversation_data):
+async def post_conversation_history(conversation_data):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post("http://localhost:8000/api/conversation/", json=conversation_data, timeout=10) as response:

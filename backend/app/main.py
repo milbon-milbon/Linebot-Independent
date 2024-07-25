@@ -15,7 +15,7 @@ from .services.medical_facility_service import find_nearby_medical_facilities
 from .services.drug_info_service import get_drug_info
 from app.views import router as conversation_router
 from app.logging_config import logger
-from .post_conversation import save_conversation_history
+from .post_conversation import post_conversation_history
 
 load_dotenv()
 app = FastAPI()
@@ -167,7 +167,9 @@ def handle_message(event: MessageEvent):
         logger.debug(f"💬会話履歴: {conversation_data}")
 
         # 非同期関数を同期関数の中で呼び出す
-        asyncio.run(save_conversation_history(conversation_data))
+        loop = asyncio.get_event_loop()
+        # 既存のイベントループ内で非同期関数を実行
+        loop.run_until_complete(post_conversation_history(conversation_data))
         
     except Exception as e:
         logger.error(f"❌ エラー発生: {e}")
@@ -193,24 +195,36 @@ def handle_location(event):
                 try:
                     results = find_nearby_medical_facilities(location, user_department)
                     if results:
-                        response = "お近くの医療機関はこちらです：\n\n" + "\n\n".join(
+                        bot_response = "お近くの医療機関はこちらです：\n\n" + "\n\n".join(
                             [f"{facility['name']}\n住所: {facility['address']}\n電話番号: {facility.get('phone_number', 'N/A')}\nウェブサイト: {facility.get('website', 'N/A')}" for facility in results]
                         )
                     else:
-                        response = "お近くに該当する医療機関が見つかりませんでした。"
+                        bot_response = "お近くに該当する医療機関が見つかりませんでした。"
                 except Exception as e:
                     logger.error(f"❌医療機関検索中のエラー発生: {e}")
-                    response = "医療機関の検索中にエラーが発生しました。"
+                    bot_response = "医療機関の検索中にエラーが発生しました。"
 
             else:
-                response = "診療科目が選択されていません。もう一度お試しください。"
+                bot_response = "診療科目が選択されていません。もう一度お試しください。"
 
+            logger.debug(f"🔍 検索結果: {bot_response}")
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text=response)
+                TextSendMessage(text=bot_response)
             )
             
-            # # ここでも、会話履歴を保存するリクエストを/conversation..に送信する
+            # ここでも、会話履歴を保存するリクエストを/conversation..に送信する
+            conversation_data = {
+                    "user_id": user_id,
+                    "user_message": f"位置情報: {location}",
+                    "bot_response": bot_response
+                }
+            logger.debug(f"💬会話履歴: {conversation_data}")
+            # 非同期関数を同期関数の中で呼び出す
+            loop = asyncio.get_event_loop()
+            # 既存のイベントループ内で非同期関数を実行
+            loop.run_until_complete(post_conversation_history(conversation_data))
+
 
     
 
