@@ -9,7 +9,7 @@ from app.services.conversation_service import save_conversation_history, get_con
 router = APIRouter()
 
 # ログ設定
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 init_db
@@ -57,9 +57,9 @@ async def create_conversation(
 # 特定ユーザーの履歴取得
 @router.get("/conversation/{user_id}")
 async def read_conversation(user_id: str, db: Session = Depends(get_db)):
-    logger.debug(f"🚥read_conversationが呼び出されました")
+    logger.info(f"🚥read_conversationが呼び出されました")
     conversation = get_conversation_history(db, user_id)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    logger.debug("🚥正常にread_conversationの処理を終えそうです")
+    logger.info("🚥正常にread_conversationの処理を終えそうです")
     return conversation

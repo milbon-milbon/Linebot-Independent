@@ -6,7 +6,7 @@ from app.database import SessionLocal, init_db
 from app.models import ConversationHistory
 
 # ロガーの設定
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # APIキーを設定
@@ -27,7 +27,7 @@ def get_user_conversation_history(db: Session, user_id: str):
 
 # プロンプトを生成する関数
 def generate_prompt(drug_name: str, info_type: str, pmda_url: str) -> str:
-    logger.debug(f"Generating prompt for drug: {drug_name}, info type: {info_type}")
+    logger.info(f"💊Generating prompt for drug: {drug_name}, info type: {info_type}")
     return (f"薬剤名: {drug_name}\n"
             f"知りたい情報: {info_type}\n"
             f"以下のPMDAのURLから得られる情報を参考にして、薬についてユーザーにわかりやすい説明をしてください。\n"
@@ -36,7 +36,7 @@ def generate_prompt(drug_name: str, info_type: str, pmda_url: str) -> str:
 # 会話履歴を基にプロンプトを生成する関数
 def generate_prompt_with_history(drug_name: str, info_type: str, pmda_url: str) -> str:
     conversation_history = "harukadrug"
-    logger.debug(f"Generating prompt for drug: {drug_name}, info type: {info_type}, with conversation history")
+    logger.info(f"💊Generating prompt for drug: {drug_name}, info type: {info_type}, with conversation history")
     return (f"ユーザーとの過去の会話:\n{conversation_history}\n"
             f"薬剤名: {drug_name}\n"
             f"知りたい情報: {info_type}\n"
@@ -61,7 +61,7 @@ def generate_natural_language_response(prompt: str, model: str = "gpt-4") -> str
 
 # check_relevance: 応答が薬品に関連しているかどうかをチェックする
 def check_relevance(response: str) -> str:
-    logger.debug(f"Checking relevance of response: {response}")
+    logger.info(f"Checking relevance of response: {response}")
     if "薬" in response or "副作用" in response or "使い方" in response:
         return response
     else:
