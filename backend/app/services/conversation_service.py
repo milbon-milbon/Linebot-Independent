@@ -31,7 +31,7 @@ def save_conversation_history(db: Session, user_id: str, user_message: str, bot_
 
 # user_idで特定のユーザーの会話履歴のみを取得する（LLMに渡す用)
 def get_conversation_history(db: Session, user_id: str):
-    logger.debug("🚥get_conversation_historyが呼び出されました")
+    logger.info("🚥get_conversation_historyが呼び出されました")
     return db.query(ConversationHistory).filter(ConversationHistory.user_id == user_id).all()
 
 # NOTE: 関数の解説

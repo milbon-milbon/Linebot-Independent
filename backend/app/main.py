@@ -21,7 +21,7 @@ load_dotenv()
 app = FastAPI()
 
 # ログ設定
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 例外処理の追加
@@ -31,8 +31,8 @@ handler = None
 try:
     line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
     handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-    logger.debug(f"📍line_bot_api: {line_bot_api}")
-    logger.debug(f"📍handler: {handler}")
+    logger.info(f"📍line_bot_api: {line_bot_api}")
+    logger.info(f"📍handler: {handler}")
 except Exception:
     logger.error(f"環境変数の読み込みに失敗しました: {Exception}")
 
@@ -48,8 +48,8 @@ async def callback(request: Request):
     signature = request.headers['X-Line-Signature']
     body = await request.body()
     try:
-        logger.debug("📩メッセージを受信しました。")
-        logger.debug(f"📝 メッセージ内容: {body.decode('utf-8')}")
+        logger.info("📩メッセージを受信しました。")
+        logger.info(f"📝 メッセージ内容: {body.decode('utf-8')}")
         handler.handle(body.decode('utf-8'), signature)
     except InvalidSignatureError:
         return PlainTextResponse("Invalid signature. Please check your channel access token/channel secret.", status_code=400)
@@ -57,14 +57,14 @@ async def callback(request: Request):
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event: MessageEvent):
-    logger.debug("📣handle_messageが呼び出されました。") 
-    logger.debug(f"✅event: {event}")
+    logger.info("📣handle_messageが呼び出されました。") 
+    logger.info(f"✅event: {event}")
     try:
         user_id = event.source.user_id
         user_message = event.message.text
 
-        logger.debug(f"ℹ️ user_id: {user_id}")
-        logger.debug(f"💬 メッセージ: {user_message}")
+        logger.info(f"ℹ️ user_id: {user_id}")
+        logger.info(f"💬 メッセージ: {user_message}")
 
         quick_reply_buttons = [
             QuickReplyButton(action=MessageAction(label="医療機関を知りたい", text="医療機関を知りたい")),
@@ -97,7 +97,7 @@ def handle_message(event: MessageEvent):
             )
 
         elif user_message in departments:
-            logger.debug("🗺️ 位置情報送信依頼をします")
+            logger.info("🗺️ 位置情報送信依頼をします")
             user_context[user_id] = {'selected_department': user_message}
             bot_response = f"{user_message}ですね。それではお近くの医療機関を検索しますので、位置情報を送信してください。"
             # 位置情報の送信を促す
@@ -139,8 +139,8 @@ def handle_message(event: MessageEvent):
             drug_name = user_context[user_id].get('drug_name')
             user_context[user_id] = {}
             if info_type in ["副作用", "使い方"]:
-                logger.debug(f"💊薬剤名: {drug_name}")
-                logger.debug(f"💊知りたいこと: {info_type}")
+                logger.info(f"💊薬剤名: {drug_name}")
+                logger.info(f"💊知りたいこと: {info_type}")
                 bot_response = get_drug_info(drug_name, info_type,   "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=" + drug_name)
                 line_bot_api.reply_message(
                     event.reply_token,
@@ -167,7 +167,7 @@ def handle_message(event: MessageEvent):
             "bot_response": bot_response
         }
 
-        logger.debug(f"💬会話履歴: {conversation_data}")
+        logger.info(f"💬会話履歴: {conversation_data}")
 
         # 非同期関数を同期関数の中で呼び出す
         loop = asyncio.get_event_loop()
@@ -175,7 +175,7 @@ def handle_message(event: MessageEvent):
         loop.run_until_complete(post_conversation_history(conversation_data))
         
     except Exception as e:
-        logger.debug(f"❌ エラー発生: {e}")
+        logger.info(f"❌ エラー発生: {e}")
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text="申し訳ありませんが、処理中にエラーが発生しました。")
@@ -186,15 +186,15 @@ def handle_location(event):
     user_id = event.source.user_id
     if isinstance(event.message, LocationMessage):
             logger.info("📍位置情報を受信しました。")
-            logger.debug(f"位置情報メッセージの内容: {event.message}")
+            logger.info(f"位置情報メッセージの内容: {event.message}")
             latitude = event.message.latitude
             longitude = event.message.longitude
             user_department = user_context.get(user_id, {}).get('selected_department')
 
             if user_department:
                 location = (latitude, longitude)
-                logger.debug(f"🏥 診療科(department): {user_department}")
-                logger.debug(f"📍 位置情報: {location}")
+                logger.info(f"🏥 診療科(department): {user_department}")
+                logger.info(f"📍 位置情報: {location}")
                 try:
                     # results = find_nearby_medical_facilities(location, user_department, user_id)
                     results = get_nearby_hospital(location, user_department, user_id)
@@ -212,7 +212,7 @@ def handle_location(event):
             else:
                 bot_response = "診療科目が選択されていません。もう一度お試しください。"
 
-            logger.debug(f"🔍 検索結果: {bot_response}")
+            logger.info(f"🔍 検索結果: {bot_response}")
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text=bot_response)
@@ -224,7 +224,7 @@ def handle_location(event):
                     "user_message": f"位置情報: {location}",
                     "bot_response": bot_response
                 }
-            logger.debug(f"💬会話履歴: {conversation_data}")
+            logger.info(f"💬会話履歴: {conversation_data}")
             # 非同期関数を同期関数の中で呼び出す
             loop = asyncio.get_event_loop()
             # 既存のイベントループ内で非同期関数を実行
