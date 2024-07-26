@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import PlainTextResponse
@@ -14,12 +15,14 @@ from linebot.models import (
 from .services.medical_facility_service import find_nearby_medical_facilities, get_nearby_hospital
 from .services.drug_info_service import get_drug_info
 from app.views import router as conversation_router
-from app.logging_config import logger
 from .post_conversation import post_conversation_history
 
 load_dotenv()
 app = FastAPI()
 
+# ログ設定
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # 例外処理の追加
 line_bot_api = None
@@ -138,7 +141,7 @@ def handle_message(event: MessageEvent):
             if info_type in ["副作用", "使い方"]:
                 logger.debug(f"💊薬剤名: {drug_name}")
                 logger.debug(f"💊知りたいこと: {info_type}")
-                bot_response = get_drug_info(drug_name, info_type, user_id,  "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=" + drug_name)
+                bot_response = get_drug_info(drug_name, info_type,   "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=" + drug_name)
                 line_bot_api.reply_message(
                     event.reply_token,
                     TextSendMessage(text=bot_response)
@@ -172,7 +175,7 @@ def handle_message(event: MessageEvent):
         loop.run_until_complete(post_conversation_history(conversation_data))
         
     except Exception as e:
-        logger.error(f"❌ エラー発生: {e}")
+        logger.debug(f"❌ エラー発生: {e}")
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text="申し訳ありませんが、処理中にエラーが発生しました。")

@@ -1,5 +1,9 @@
 import aiohttp
-from app.logging_config import logger
+import logging
+
+# ログ設定
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 async def post_conversation_history(conversation_data):
     try:
@@ -10,4 +14,4 @@ async def post_conversation_history(conversation_data):
                 else:
                     logger.error(f"🙅会話履歴の保存に失敗しました: {response.status} - {await response.text()}")
     except Exception as e:
-        logger.error(f"❌ エラー発生: {e}")
+        logger.debug(f"❌ エラー発生: {e}")

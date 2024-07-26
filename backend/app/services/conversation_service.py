@@ -1,8 +1,11 @@
+import logging
 from sqlalchemy.orm import Session # sqlalchemy.ormのsessionクラス: DB操作用
 from app.models import ConversationHistory
 from datetime import datetime, timezone
-from app.logging_config import logger
 
+# ログ設定
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # 会話を保存する
 def save_conversation_history(db: Session, user_id: str, user_message: str, bot_response: str):

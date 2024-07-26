@@ -1,12 +1,16 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from .database import SessionLocal, init_db
 from pydantic import BaseModel
 from app.services.conversation_service import save_conversation_history, get_conversation_history
-from app.logging_config import logger
 
 
 router = APIRouter()
+
+# ログ設定
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 init_db
 

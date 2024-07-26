@@ -111,10 +111,8 @@ def test_logging():
 if __name__ == "__main__":
     test_logging()
 
-# くーみんさんへ: ここ以下が、私は0726朝に作成したコードです。これで、一旦出力は成功しています。会話履歴はDBから引けていないので、ベタうちで入れてます。ここをDB検索結果に置き換えたら完成です
 
 import httpx
-# import asyncio
 from fastapi import Depends, HTTPException
 from .conversation_service import get_conversation_history
 
