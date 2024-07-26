@@ -118,8 +118,8 @@ def get_drug_info(drug_name: str, info_type: str, pmda_url: str, user_id:str, mo
 init_db()
 
 # 使用例
-if __name__ == "__main__":
-    db_session = get_db_session()  # データベースセッションの取得
-    user_id = 'example_user_id'
-    response = generate_response_with_history(user_id, db_session, drug_name, info_type, pmda_url)
-    print(response)
+# if __name__ == "__main__":
+#     db_session = get_db_session()  # データベースセッションの取得
+#     user_id = 'example_user_id'
+#     response = generate_response_with_history(user_id, db_session, drug_name, info_type, pmda_url)
+#     print(response)
