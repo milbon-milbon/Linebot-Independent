@@ -141,7 +141,7 @@ def handle_message(event: MessageEvent):
             if info_type in ["副作用", "使い方"]:
                 logger.info(f"💊薬剤名: {drug_name}")
                 logger.info(f"💊知りたいこと: {info_type}")
-                bot_response = get_drug_info(drug_name, info_type,   "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=" + drug_name)
+                bot_response = get_drug_info(drug_name, info_type, "https://www.pmda.go.jp/PmdaSearch/iyakuSearch/GeneralList?keyword=" + drug_name , user_id)
                 line_bot_api.reply_message(
                     event.reply_token,
                     TextSendMessage(text=bot_response)
