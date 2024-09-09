@@ -22,14 +22,14 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # 近くの医療施設を検索する関数定義(情報をリスト形式で返す)
 def find_nearby_medical_facilities(location, department, radius=10000):
-    logger.info("🌏Starting search for nearby medical facilities")
-    logger.info(f"🏡Location: {location}, 🏥Department: {department}, Radius: {radius}")
+    logger.info("◆Starting search for nearby medical facilities")
+    logger.info(f"◆Location: {location}, ◆Department: {department}, Radius: {radius}")
 
     try:
         places = gmaps.places_nearby(location, radius=radius, keyword=department, type='hospital', language='ja')
-        logger.info(f"🔍Found {len(places.get('results', []))} places")
+        logger.info(f"◆Found {len(places.get('results', []))} places")
     except Exception as e:
-        logger.error(f"🆖An error occurred while searching for places: {e}")
+        logger.error(f"◆An error occurred while searching for places: {e}")
         return []
     
     results = []
@@ -46,9 +46,9 @@ def find_nearby_medical_facilities(location, department, radius=10000):
                 'opening_hours': details.get('opening_hours', {}).get('weekday_text')
             }
             results.append(facility_info)
-            logger.info(f"🔍Added facility: {facility_info['name']}")
+            logger.info(f"◆Added facility: {facility_info['name']}")
         except Exception as e:
-            logger.error(f"🆖An error occurred while retrieving details for place ID {place_id}: {e}")
+            logger.error(f"◆An error occurred while retrieving details for place ID {place_id}: {e}")
 
     logger.info(f"Returning {len(results)} results")
     return results
